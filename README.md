@@ -16,6 +16,12 @@ Kaggle AI Agents: Intensive Vibe Coding Capstone Project
 
 Track: Agents for Good
 
+## Live Links
+
+- GitHub: https://github.com/dennispang626/studyops-agent
+- Frontend demo: https://studyops-agent.vercel.app
+- Vercel project: https://vercel.com/dennis-heku/studyops-agent
+
 ## MVP Certifications
 
 - Primary demo: AWS Certified AI Practitioner AIF-C01
@@ -182,5 +188,5 @@ Phase 9 GitHub and Vercel handoff is complete:
 - Print-only release command plan exists.
 - Phase 9 handoff asset tests exist.
 
-The next live publishing step needs explicit approval plus GitHub and Vercel
-access. Backend deployment also needs Google Cloud access.
+The frontend is deployed to Vercel for live UI tuning. Backend deployment still
+needs explicit approval plus Google Cloud access.

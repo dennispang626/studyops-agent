@@ -1,7 +1,8 @@
 # Phase 9 - GitHub and Vercel Handoff
 
-Phase 9 turns the deployment package into an operator-ready portfolio handoff.
-No external credentials were used and no live deployment was performed.
+Phase 9 turned the deployment package into an operator-ready portfolio handoff.
+After approval, the public GitHub repository and Vercel production frontend were
+created.
 
 ## What Was Added
 
@@ -11,22 +12,26 @@ No external credentials were used and no live deployment was performed.
   sequence without running it.
 - Phase 9 contract tests.
 - Phase output summary in `outputs/`.
+- Public GitHub repository.
+- Production Vercel frontend.
 
-## Recommended Publish Flow
+## Published Links
+
+- GitHub: https://github.com/dennispang626/studyops-agent
+- Frontend demo: https://studyops-agent.vercel.app
+- Vercel project: https://vercel.com/dennis-heku/studyops-agent
+
+## Recommended Update Flow
 
 1. Run `.\scripts\preflight.ps1`.
-2. Initialize Git locally.
-3. Commit the MVP package.
-4. Authenticate with GitHub CLI.
-5. Create and push the repo with `gh repo create`.
-6. Import the repo into Vercel with `frontend/` as the project root.
-7. Keep backend deployment gated until Google Cloud access and CORS settings are
+2. Commit the UI or agent change.
+3. Push to GitHub.
+4. Deploy the frontend to Vercel production.
+5. Keep backend deployment gated until Google Cloud access and CORS settings are
    ready.
 
 ## Access Still Needed
 
-- GitHub account or organization access.
-- Vercel account or team access.
 - Optional Google Cloud project and model credentials for backend deployment.
 
 ## Deployment Decision
@@ -50,4 +55,3 @@ The project now has a clean handoff story:
 - deployment guardrails,
 - no-secret checklist,
 - capstone link checklist.
-

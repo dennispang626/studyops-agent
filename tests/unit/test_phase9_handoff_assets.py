@@ -25,9 +25,9 @@ class Phase9HandoffAssetTests(unittest.TestCase):
         )
 
         for marker in [
-            "gh repo create",
+            "https://github.com/dennispang626/studyops-agent",
             "Vercel",
-            "Root directory: frontend",
+            "npx vercel@latest deploy frontend --prod",
             "Cloud Run",
             "ALLOW_ORIGINS",
             "no API keys",

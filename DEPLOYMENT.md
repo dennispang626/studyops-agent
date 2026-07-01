@@ -9,6 +9,15 @@ StudyOps Agent is packaged as a split frontend/backend project:
 Phase 8 prepares deployment packaging only. Do not deploy production services
 until tests pass and the deployment target is explicitly approved.
 
+## Published Frontend
+
+- GitHub repository: https://github.com/dennispang626/studyops-agent
+- Production frontend: https://studyops-agent.vercel.app
+- Vercel project: https://vercel.com/dennis-heku/studyops-agent
+
+The backend has not been deployed. The production frontend currently runs in
+browser-local demo mode.
+
 ## 1. GitHub Packaging
 
 Recommended repository root: `studyops-agent/`.

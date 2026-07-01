@@ -1,15 +1,16 @@
 # StudyOps GitHub and Vercel Handoff
 
-Phase 9 prepares StudyOps Agent for portfolio publishing. It does not push,
-deploy, or use private credentials.
+Phase 9 prepared StudyOps Agent for portfolio publishing, then published the
+frontend for live UI tuning.
 
 ## Current State
 
-- The local `studyops-agent/` folder is deployment-ready but is not yet a Git
-  repository.
-- The frontend can be deployed as a static Vercel project from `frontend/`.
+- GitHub repository: https://github.com/dennispang626/studyops-agent
+- Production frontend: https://studyops-agent.vercel.app
+- Vercel project: https://vercel.com/dennis-heku/studyops-agent
 - The backend is packaged for a later Cloud Run deployment.
-- No GitHub, Vercel, or Google Cloud credentials have been used in this phase.
+- The production frontend currently runs in browser-local demo mode.
+- No Google Cloud credentials have been used.
 
 ## Preflight
 
@@ -27,26 +28,16 @@ It checks:
 
 ## GitHub Publish Plan
 
-Use a private repo while iterating if you are still polishing the capstone. Use a
-public repo before Kaggle submission if you want judges to access the code
-directly.
+The first public repo push has been completed. Reuse this flow for future
+changes:
 
 ```powershell
-git init
-git branch -M main
 git add .
-git commit -m "Initial StudyOps Agent capstone MVP"
-gh auth login
-gh repo create studyops-agent --public --source . --remote origin --push
+git commit -m "Describe the UI or agent change"
+git push
 ```
 
-If you prefer private first:
-
-```powershell
-gh repo create studyops-agent --private --source . --remote origin --push
-```
-
-Before making the repo public, re-check:
+Before every push, re-check:
 
 - `.env` is not committed.
 - `data/sqlite/studyops.db` is not committed.
@@ -56,13 +47,11 @@ Before making the repo public, re-check:
 
 ## Vercel Frontend Plan
 
-Create a Vercel project from the GitHub repo with these settings:
+The Vercel project has been created under `dennis-heku/studyops-agent`.
+For future frontend updates:
 
-```text
-Root directory: frontend
-Framework preset: Other
-Build command: none
-Output directory: .
+```powershell
+npx vercel@latest deploy frontend --prod --yes --scope dennis-heku
 ```
 
 The frontend works without a backend in browser-local demo mode.
@@ -106,4 +95,3 @@ For the Kaggle submission, prepare:
 - Optional backend URL if deployed and login-free.
 - YouTube demo video URL.
 - Kaggle Writeup with media gallery, cover image, project link, and track.
-
