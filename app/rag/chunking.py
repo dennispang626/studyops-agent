@@ -5,7 +5,6 @@ from __future__ import annotations
 import hashlib
 import re
 from dataclasses import asdict, dataclass
-from pathlib import Path
 from typing import Any
 
 from app.storage.obsidian_vault import ObsidianVault
@@ -70,13 +69,16 @@ def chunks_from_vault(certification: str | None = None) -> list[RagChunk]:
     chunks: list[RagChunk] = []
     for note in vault.list_notes(certification):
         relative_path = note["path"]
-        path_obj = Path(relative_path)
         text = vault.read_note(relative_path)
+        note_metadata = vault.get_note_metadata(relative_path)
         metadata = {
             "path": relative_path,
-            "title": note["title"],
-            "certification": path_obj.parts[0] if path_obj.parts else certification or "",
+            "title": note_metadata.get("title") or note["title"],
+            "certification": note_metadata.get("certification") or certification or "",
+            "type": note_metadata.get("type", ""),
+            "tags": note_metadata.get("tags", ""),
+            "source_url": note_metadata.get("source_url", ""),
+            "review_status": note_metadata.get("review_status", ""),
         }
         chunks.extend(chunk_text(text=text, metadata=metadata))
     return chunks
-

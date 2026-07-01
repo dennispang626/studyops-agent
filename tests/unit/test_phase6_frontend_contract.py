@@ -41,6 +41,8 @@ class Phase6FrontendContractTests(unittest.TestCase):
 
         for marker in [
             "/api/studyops/workflow",
+            "/api/studyops/ingest-url",
+            "/api/studyops/ingest-file",
             "studyops_memory:",
             "retryQueue",
             "buildPracticeQuiz",

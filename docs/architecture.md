@@ -8,7 +8,7 @@ StudyOps Agent uses a local-first architecture for the capstone MVP.
 - Backend: Python FastAPI + Google ADK
 - Agent orchestration: ADK root agent with specialist sub-agents
 - Tools: MCP server for source search, ingestion, notes, RAG, and progress
-- Knowledge base: Obsidian-compatible Markdown vault
+- Knowledge base: OKF-style Obsidian-compatible Markdown wiki
 - Vector retrieval: Chroma
 - Progress memory: SQLite
 
@@ -17,8 +17,8 @@ StudyOps Agent uses a local-first architecture for the capstone MVP.
 1. Learner selects AWS Certified AI Practitioner or AWS Cloud Practitioner.
 2. Source Curator finds official and trusted certification sources.
 3. Trust and Noise Filter removes risky or irrelevant content.
-4. Knowledge Architect writes structured Markdown notes to the vault.
-5. RAG indexer embeds vault notes into Chroma.
+4. Knowledge Architect compiles sources into OKF-style Markdown wiki notes.
+5. RAG indexer chunks and embeds curated wiki notes into Chroma.
 6. Study Planner creates a domain-based learning path.
 7. Practice Coach generates cited exam-style practice questions.
 8. Examiner grades answers and updates SQLite weak-topic memory.
@@ -41,3 +41,12 @@ setup succeeds. During local tests it falls back to a deterministic JSON index
 stored under `data/chroma/studyops_fallback_index.json`. This keeps the project
 demoable on Windows while preserving the Chroma-compatible interface.
 
+## OKF-Style Wiki Layer
+
+StudyOps uses the Obsidian vault as a portable Markdown wiki with YAML
+frontmatter. Raw uploads, URLs, and PDFs are extracted, cleaned, summarized, and
+written into linked notes under `certificates/`, `concepts/`, `sources/`, and
+`quizzes/`. Chroma indexes the curated wiki notes rather than repeatedly
+retrieving from raw messy documents.
+
+See `docs/okf-knowledge-architecture.md` for the note contract and vault layout.

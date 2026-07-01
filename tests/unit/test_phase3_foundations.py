@@ -54,11 +54,31 @@ class ObsidianVaultTests(unittest.TestCase):
 
             notes = vault.list_notes("AWS AI Practitioner")
 
-            self.assertEqual(
-                note.path, str(Path("AWS AI Practitioner") / "exam-overview.md")
-            )
+            self.assertEqual(note.path, "sources/exam-overview.md")
             self.assertEqual(len(notes), 1)
             self.assertIn("Exam Overview", vault.read_note(note.path))
+            self.assertIn("format: okf-style-markdown", vault.read_note(note.path))
+
+    def test_okf_structure_creates_linked_wiki_pages(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            vault = ObsidianVault(Path(tmp_dir))
+            structure = vault.ensure_okf_structure("AIF-C01")
+
+            expected_paths = [
+                "index.md",
+                str(Path("certificates") / "aws-ai-practitioner" / "index.md"),
+                str(Path("certificates") / "aws-ai-practitioner" / "exam-blueprint.md"),
+                str(Path("certificates") / "aws-ai-practitioner" / "study-plan.md"),
+                str(Path("concepts") / "foundation-models.md"),
+                str(Path("quizzes") / "weak-topics.md"),
+            ]
+
+            for relative_path in expected_paths:
+                self.assertTrue((Path(tmp_dir) / relative_path).exists(), relative_path)
+
+            blueprint = vault.read_note(structure["exam_blueprint"]["path"])
+            self.assertIn("type: exam_blueprint", blueprint)
+            self.assertIn("[[../../concepts/", blueprint)
 
 
 class ToolFoundationTests(unittest.TestCase):

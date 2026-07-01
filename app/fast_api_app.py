@@ -13,14 +13,17 @@
 # limitations under the License.
 import os
 import logging
+import tempfile
+from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI
+from fastapi import FastAPI, File, Form, UploadFile
 from google.adk.cli.fast_api import get_fast_api_app
 from pydantic import BaseModel, Field
 
 from app.app_utils.telemetry import setup_telemetry
 from app.app_utils.typing import Feedback
+from app.ingestion.pipeline import ingest_source_url, ingest_study_file
 from app.workflows.studyops_workflow import (
     create_study_plan,
     generate_practice_quiz,
@@ -96,6 +99,15 @@ class StudyOpsQuizRequest(BaseModel):
     question_count: int = Field(default=5, ge=1, le=10)
 
 
+class StudyOpsIngestUrlRequest(BaseModel):
+    """Request body for URL ingestion into the OKF-style wiki."""
+
+    certification: str = Field(default="AIF-C01")
+    url: str = Field()
+    title: str = Field(default="")
+    domain: str = Field(default="")
+
+
 class StudyOpsSubmitRequest(BaseModel):
     """Request body for practice answer scoring."""
 
@@ -138,6 +150,43 @@ def generate_practice_quiz_endpoint(request: StudyOpsQuizRequest) -> dict[str, A
         query=request.query,
         question_count=request.question_count,
     )
+
+
+@app.post("/api/studyops/ingest-url")
+def ingest_source_url_endpoint(request: StudyOpsIngestUrlRequest) -> dict[str, Any]:
+    """Ingest a trusted URL into Obsidian Markdown and the RAG index."""
+
+    return ingest_source_url(
+        certification=request.certification,
+        url=request.url,
+        title=request.title,
+        domain=request.domain,
+    )
+
+
+@app.post("/api/studyops/ingest-file")
+async def ingest_file_endpoint(
+    file: UploadFile = File(...),
+    certification: str = Form(default="AIF-C01"),
+    title: str = Form(default=""),
+    domain: str = Form(default=""),
+) -> dict[str, Any]:
+    """Ingest an uploaded file into Obsidian Markdown and the RAG index."""
+
+    suffix = Path(file.filename or "upload.txt").suffix or ".txt"
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as handle:
+        temp_path = Path(handle.name)
+        handle.write(await file.read())
+
+    try:
+        return ingest_study_file(
+            certification=certification,
+            file_path=str(temp_path),
+            title=title or Path(file.filename or "Uploaded study file").stem,
+            domain=domain,
+        )
+    finally:
+        temp_path.unlink(missing_ok=True)
 
 
 @app.post("/api/studyops/practice-submit")

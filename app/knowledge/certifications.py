@@ -86,6 +86,18 @@ def get_certification_item(certification: str) -> dict[str, Any] | None:
     return CERTIFICATION_CATALOG.get(resolve_certification_key(certification))
 
 
+def get_certification_slug(certification: str) -> str:
+    """Return the stable vault slug for a supported certification."""
+
+    key = resolve_certification_key(certification)
+    if key in CERTIFICATION_CATALOG:
+        return key
+    for slug, item in CERTIFICATION_CATALOG.items():
+        if item.get("exam_code") == certification:
+            return slug
+    return key
+
+
 def get_exam_code(certification: str) -> str:
     """Return the exam code when a certification is supported."""
 
@@ -107,4 +119,3 @@ def get_blueprint(certification: str) -> dict[str, Any]:
             "focus_terms": ["concepts", "skills", "practice"],
         },
     )
-

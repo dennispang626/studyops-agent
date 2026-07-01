@@ -19,7 +19,7 @@ data/chroma/*
 !data/chroma/.gitkeep
 data/sqlite/*
 !data/sqlite/.gitkeep
+data/obsidian_vault/index.md
 data/obsidian_vault/*/
 
 frontend/.vercel/
-

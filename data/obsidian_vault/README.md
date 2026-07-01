@@ -2,6 +2,14 @@
 
 This folder is the human-readable knowledge base.
 
-Phase 4 will generate Markdown notes here from official sources and uploaded
-learner files.
+StudyOps generates an OKF-style Markdown wiki here:
 
+- `index.md`
+- `certificates/<certification>/`
+- `concepts/`
+- `sources/`
+- `quizzes/`
+
+Generated vault notes are local learner artifacts and are intentionally ignored
+by Git. The backend can rebuild them from certification blueprints, uploaded
+files, URLs, and the SQLite learner memory.

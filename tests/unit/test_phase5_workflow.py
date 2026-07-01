@@ -83,6 +83,10 @@ class Phase5WorkflowTests(unittest.TestCase):
         self.assertIn("Source Curator Agent", trace_agents)
         self.assertIn("Examiner and Remediation Agent", trace_agents)
         self.assertEqual(workflow["certification"], "AIF-C01")
+        self.assertIn("vault_structure", workflow["source_map"])
+        self.assertTrue(
+            workflow["study_plan_note"]["path"].endswith("certificates/aws-ai-practitioner/study-plan.md")
+        )
         self.assertEqual(workflow["practice_quiz"]["question_count"], 2)
         self.assertIn("not official", workflow["practice_quiz"]["disclaimer"])
         self.assertEqual(scoring["score"], 50.0)

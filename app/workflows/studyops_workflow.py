@@ -15,11 +15,12 @@ from app.ingestion.pipeline import ingest_study_file
 from app.knowledge.certifications import (
     get_blueprint,
     get_certification_item,
+    get_certification_slug,
     get_exam_code,
 )
 from app.rag.index import StudyOpsRagIndex
 from app.security.source_trust import classify_source, redact_sensitive_text
-from app.storage.obsidian_vault import ObsidianVault
+from app.storage.obsidian_vault import ObsidianVault, slugify
 from app.storage.sqlite_store import SQLiteStudyStore
 
 
@@ -301,7 +302,7 @@ def _source_map_body(
 
 
 def seed_certification_source_map(certification: str) -> dict[str, Any]:
-    """Create a safe starter source map note and rebuild the RAG index."""
+    """Create the OKF-style starter wiki and rebuild the RAG index."""
 
     ensure_storage_dirs()
     exam_code = get_exam_code(certification)
@@ -309,6 +310,8 @@ def seed_certification_source_map(certification: str) -> dict[str, Any]:
     sources = _official_sources(certification)
     store = SQLiteStudyStore()
     source_records: list[dict[str, Any]] = []
+    vault = ObsidianVault()
+    structure = vault.ensure_okf_structure(exam_code)
 
     for url in sources:
         trust = classify_source(url=url, title=blueprint["name"])
@@ -320,20 +323,63 @@ def seed_certification_source_map(certification: str) -> dict[str, Any]:
             trust_level=trust.trust_level,
         )
 
-    note = ObsidianVault().write_note(
+    blueprint_note = vault.write_exam_blueprint(
+        certification=exam_code,
+        official_sources=sources,
+    )
+    source_map_note = vault.write_source_note(
         certification=exam_code,
         title=f"{blueprint['name']} Official Source Map",
         body=_source_map_body(exam_code, blueprint, sources),
-        source_url=sources[0] if sources else None,
-        metadata={"domain": "source_map", "trust_level": "official"},
+        source_url=sources[0] if sources else "",
+        domain="source_map",
+        trust_level="official",
+        source_kind="source_map",
     )
     index = StudyOpsRagIndex().rebuild_from_vault(certification=exam_code)
     return {
         "certification": exam_code,
-        "note": note.to_dict(),
+        "note": source_map_note.to_dict(),
+        "blueprint_note": blueprint_note.to_dict(),
+        "vault_structure": structure,
         "index": index,
         "sources": source_records,
     }
+
+
+def _write_study_plan_note(certification: str, plan: dict[str, Any]) -> dict[str, Any]:
+    """Persist the current learner-facing plan into the OKF-style wiki."""
+
+    exam_code = get_exam_code(certification)
+    cert_slug = get_certification_slug(exam_code)
+    week_lines = "\n".join(
+        (
+            f"- Week {week['week']}: [[../../concepts/{slugify(week['focus'])}|"
+            f"{week['focus']}]] ({week['estimated_hours']}h)"
+        )
+        for week in plan["weekly_plan"]
+    )
+    loop_lines = "\n".join(f"- {item}" for item in plan["daily_loop"])
+    metrics_lines = "\n".join(f"- {item}" for item in plan["success_metrics"])
+    note = ObsidianVault().write_okf_note(
+        note_type="study_plan",
+        title=f"{plan['certification_name']} Study Plan",
+        description="Current StudyOps learner plan compiled from setup settings.",
+        relative_path=Path("certificates") / cert_slug / "study-plan.md",
+        certification=exam_code,
+        tags=["study-plan", cert_slug, "agent-compiled"],
+        body=(
+            f"Goal: {plan['learner_goal'] or 'Certification readiness'}\n\n"
+            f"Hours per week: {plan['hours_per_week']}\n\n"
+            "## Weekly Plan\n\n"
+            f"{week_lines}\n\n"
+            "## Daily Loop\n\n"
+            f"{loop_lines}\n\n"
+            "## Success Metrics\n\n"
+            f"{metrics_lines}\n"
+        ),
+    )
+    return note.to_dict()
 
 
 def create_study_plan(
@@ -542,8 +588,11 @@ def run_studyops_workflow(
     trace.append(
         WorkflowTraceStep(
             agent="Source Curator Agent",
-            action="Selected official certification source candidates",
-            output=f"{len(source_map['sources'])} source candidates for {exam_code}",
+            action="Created the OKF-style certificate wiki and selected official sources",
+            output=(
+                f"{len(source_map['sources'])} source candidates and "
+                f"{len(source_map['vault_structure']['concepts'])} concept pages for {exam_code}"
+            ),
         )
     )
 
@@ -571,7 +620,7 @@ def run_studyops_workflow(
     trace.append(
         WorkflowTraceStep(
             agent="Knowledge Architect Agent",
-            action="Created Obsidian notes and rebuilt the RAG index",
+            action="Compiled raw sources into OKF-style Obsidian notes and rebuilt Chroma",
             output=(
                 f"{1 + len(ingested_files)} notes/index updates prepared for "
                 f"{blueprint['name']}"
@@ -584,11 +633,12 @@ def run_studyops_workflow(
         learner_goal=learner_goal,
         hours_per_week=hours_per_week,
     )
+    plan_note = _write_study_plan_note(exam_code, plan)
     trace.append(
         WorkflowTraceStep(
             agent="Study Planner Agent",
-            action="Converted the blueprint into a weekly study plan",
-            output=f"{len(plan['weekly_plan'])} blueprint domains planned",
+            action="Converted the blueprint into a linked wiki study plan",
+            output=f"{len(plan['weekly_plan'])} domains planned in {plan_note['path']}",
         )
     )
 
@@ -623,6 +673,7 @@ def run_studyops_workflow(
         "source_map": source_map,
         "ingested_files": ingested_files,
         "study_plan": plan,
+        "study_plan_note": plan_note,
         "practice_quiz": quiz,
         "memory": memory,
     }

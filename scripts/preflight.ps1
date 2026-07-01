@@ -30,6 +30,18 @@ function Resolve-Tool {
     throw "Unable to resolve required tool from candidates: $($Candidates -join ', ')"
 }
 
+function Invoke-Checked {
+    param(
+        [string]$Command,
+        [string[]]$Arguments
+    )
+
+    & $Command @Arguments
+    if ($LASTEXITCODE -ne 0) {
+        throw "Command failed with exit code ${LASTEXITCODE}: $Command $($Arguments -join ' ')"
+    }
+}
+
 $Python = Resolve-Tool @(
     $PythonPath,
     (Join-Path $env:USERPROFILE ".cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe"),
@@ -47,14 +59,16 @@ Write-Host "StudyOps preflight"
 Write-Host "Python: $Python"
 Write-Host "Node: $Node"
 
-& $Python -m py_compile `
-    app\workflows\studyops_workflow.py `
-    app\tools\studyops_tools.py `
-    app\fast_api_app.py
+Invoke-Checked $Python @(
+    "-m",
+    "py_compile",
+    "app\workflows\studyops_workflow.py",
+    "app\tools\studyops_tools.py",
+    "app\fast_api_app.py"
+)
 
-& $Node --check frontend\app.js
+Invoke-Checked $Node @("--check", "frontend\app.js")
 
-& $Python -m unittest discover -s tests\unit
+Invoke-Checked $Python @("-m", "unittest", "discover", "-s", "tests\unit")
 
 Write-Host "StudyOps preflight passed."
-

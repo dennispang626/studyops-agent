@@ -10,6 +10,24 @@ from app.security.source_trust import redact_sensitive_text
 
 
 SUPPORTED_TEXT_SUFFIXES = {".md", ".markdown", ".txt", ".html", ".htm"}
+SUPPORTED_SUFFIXES = {*SUPPORTED_TEXT_SUFFIXES, ".pdf"}
+
+
+def _load_pdf_text(path: Path) -> str:
+    """Extract text from a PDF when the optional parser is installed."""
+
+    try:
+        from pypdf import PdfReader  # type: ignore
+    except ImportError as exc:  # pragma: no cover - optional dependency path
+        raise ValueError(
+            "PDF ingestion requires pypdf. Install project dependencies with `uv sync`."
+        ) from exc
+
+    reader = PdfReader(str(path))
+    pages = []
+    for page in reader.pages:
+        pages.append(page.extract_text() or "")
+    return "\n\n".join(page.strip() for page in pages if page.strip())
 
 
 @dataclass(frozen=True)
@@ -30,7 +48,8 @@ class LoadedFile:
 def load_study_file(file_path: str, title: str = "") -> LoadedFile:
     """Load a supported text-like study file.
 
-    PDF parsing will be added later only if we install a PDF parser dependency.
+    PDFs use the optional pypdf parser so raw uploads can enter the same
+    Markdown-wiki and RAG pipeline as text sources.
     """
 
     path = Path(file_path).expanduser().resolve()
@@ -39,7 +58,13 @@ def load_study_file(file_path: str, title: str = "") -> LoadedFile:
 
     suffix = path.suffix.lower()
     if suffix == ".pdf":
-        raise ValueError("PDF ingestion requires an optional parser and is not enabled yet.")
+        text = _load_pdf_text(path)
+        return LoadedFile(
+            path=str(path),
+            title=title or path.stem.replace("-", " ").replace("_", " ").title(),
+            text=redact_sensitive_text(text),
+            loaded_at=datetime.now(UTC).isoformat(),
+        )
     if suffix not in SUPPORTED_TEXT_SUFFIXES:
         raise ValueError(f"Unsupported study file type: {suffix}")
 
@@ -50,4 +75,3 @@ def load_study_file(file_path: str, title: str = "") -> LoadedFile:
         text=redact_sensitive_text(text),
         loaded_at=datetime.now(UTC).isoformat(),
     )
-

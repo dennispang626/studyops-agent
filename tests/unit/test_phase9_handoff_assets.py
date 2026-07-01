@@ -59,8 +59,8 @@ class Phase9HandoffAssetTests(unittest.TestCase):
             "python.exe",
             "node.exe",
             "py_compile",
-            "--check frontend\\app.js",
-            "unittest discover -s tests\\unit",
+            '"--check", "frontend\\app.js"',
+            '"unittest", "discover", "-s", "tests\\unit"',
         ]:
             self.assertIn(marker, script)
 

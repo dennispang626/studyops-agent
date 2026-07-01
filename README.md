@@ -50,7 +50,7 @@ Storage:
 
 - ADK agent / multi-agent system
 - MCP tools
-- RAG over an Obsidian Markdown vault
+- RAG over an OKF-style Obsidian Markdown wiki
 - Transformer embeddings through the vector index
 - LangChain-style document loading, splitting, and retrieval
 - Context engineering with source grounding and citation rules
@@ -76,7 +76,7 @@ studyops-agent/
     storage/              # Obsidian and SQLite foundations
     tools/                # Python tool functions shared by ADK and MCP
   data/
-    obsidian_vault/       # Markdown notes for RAG and human study
+    obsidian_vault/       # OKF-style Markdown wiki for RAG and human study
     chroma/               # Chroma or fallback JSON index
     sqlite/               # Local progress DB, generated later
   docs/                   # Architecture and implementation notes
@@ -154,6 +154,7 @@ Phase 9 GitHub and Vercel handoff is complete:
 - Storage and frontend directories are prepared.
 - SQLite learner memory foundation exists.
 - Obsidian Markdown vault foundation exists.
+- OKF-style wiki structure exists for certificates, concepts, sources, and quizzes.
 - Source trust and redaction helpers exist.
 - ADK root agent now exposes the Phase 3 tool functions.
 - Optional MCP server wrapper exists.

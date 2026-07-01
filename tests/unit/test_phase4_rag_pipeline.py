@@ -76,12 +76,13 @@ class RagPipelineTests(unittest.TestCase):
                 )
 
             self.assertEqual(ingest_result["note"]["title"], "Responsible AI Notes")
+            self.assertEqual(ingest_result["note"]["path"], "sources/responsible-ai-notes.md")
             self.assertEqual(index_result["backend"], "json-fallback")
             self.assertGreaterEqual(len(context["matches"]), 1)
             self.assertIn("Responsible AI Notes", context["matches"][0]["text"])
             self.assertTrue(context["citations"][0].endswith("responsible-ai-notes.md"))
+            self.assertIn("type", context["matches"][0]["metadata"])
 
 
 if __name__ == "__main__":
     unittest.main()
-

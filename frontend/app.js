@@ -679,11 +679,42 @@ function classifySource(url) {
   };
 }
 
-function classifyEnteredSource() {
+async function classifyEnteredSource() {
   const url = els.sourceUrlInput.value.trim();
   if (!url) {
     return;
   }
+
+  if (API_BASE) {
+    try {
+      setConnectionStatus("Ingesting URL");
+      const response = await fetch(`${API_BASE}/api/studyops/ingest-url`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          certification: state.certification,
+          url,
+          title: domainFromUrl(url),
+          domain: getActiveWeek().focus,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error(`Ingest URL failed with ${response.status}`);
+      }
+      const result = await response.json();
+      const source = classifySource(url);
+      state.sources = [source, ...state.sources.filter((item) => item.url !== url)];
+      state.notes = [noteFromIngestion(result), ...state.notes].filter(Boolean);
+      els.sourceUrlInput.value = "";
+      retrieveContext();
+      renderAll();
+      setConnectionStatus("URL ingested");
+      return;
+    } catch (error) {
+      setConnectionStatus("Local source fallback");
+    }
+  }
+
   const source = classifySource(url);
   state.sources = [source, ...state.sources.filter((item) => item.url !== url)];
   if (source.allowed) {
@@ -709,6 +740,39 @@ async function addSelectedFilesAsNotes() {
   if (!files.length) {
     return;
   }
+
+  if (API_BASE) {
+    const backendNotes = [];
+    for (const file of files) {
+      const form = new FormData();
+      form.append("file", file);
+      form.append("certification", state.certification);
+      form.append("title", file.name.replace(/\.[^.]+$/, ""));
+      form.append("domain", getActiveWeek().focus);
+      try {
+        setConnectionStatus(`Ingesting ${file.name}`);
+        const response = await fetch(`${API_BASE}/api/studyops/ingest-file`, {
+          method: "POST",
+          body: form,
+        });
+        if (!response.ok) {
+          throw new Error(`Ingest file failed with ${response.status}`);
+        }
+        backendNotes.push(noteFromIngestion(await response.json()));
+      } catch (error) {
+        setConnectionStatus("Local file fallback");
+      }
+    }
+    if (backendNotes.length) {
+      state.notes = [...backendNotes.filter(Boolean), ...state.notes];
+      els.fileInput.value = "";
+      retrieveContext();
+      renderAll();
+      setConnectionStatus("Files ingested");
+      return;
+    }
+  }
+
   const notes = [];
   for (const file of files) {
     let body = "";
@@ -731,6 +795,22 @@ async function addSelectedFilesAsNotes() {
   els.fileInput.value = "";
   retrieveContext();
   renderAll();
+}
+
+function noteFromIngestion(result) {
+  const note = result && result.note;
+  if (!note) {
+    return null;
+  }
+  return {
+    id: note.path || `backend-note-${Date.now()}`,
+    kind: "backend",
+    title: note.title || "Ingested note",
+    source: note.source_url || note.path,
+    citation: note.path || note.source_url || "",
+    domain: "okf_wiki",
+    body: `OKF-style wiki note written to ${note.path}. RAG index refreshed with ${result.index ? result.index.chunk_count : 0} chunks.`,
+  };
 }
 
 function retrieveContext() {
