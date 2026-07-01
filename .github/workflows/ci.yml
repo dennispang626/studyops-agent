@@ -1,0 +1,40 @@
+name: StudyOps CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Python syntax check
+        run: |
+          python -m py_compile \
+            app/workflows/studyops_workflow.py \
+            app/tools/studyops_tools.py \
+            app/fast_api_app.py
+
+      - name: Frontend syntax check
+        run: node --check frontend/app.js
+
+      - name: Unit tests
+        run: python -m unittest discover -s tests/unit
+

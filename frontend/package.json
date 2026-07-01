@@ -1,0 +1,10 @@
+{
+  "name": "studyops-agent-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Static Vercel-ready frontend for StudyOps Agent",
+  "scripts": {
+    "check": "node --check app.js"
+  }
+}
+

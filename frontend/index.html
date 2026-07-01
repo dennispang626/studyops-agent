@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>StudyOps Agent</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="StudyOps navigation">
+        <div class="brand-block">
+          <div class="brand-mark" aria-hidden="true">SO</div>
+          <div>
+            <h1>StudyOps Agent</h1>
+            <p>AWS certification coach</p>
+          </div>
+        </div>
+
+        <nav class="app-nav" aria-label="Primary">
+          <button class="nav-button active" type="button" data-page="homePage">
+            <span aria-hidden="true">01</span>
+            Agents
+          </button>
+          <button class="nav-button" type="button" data-page="setupPage">
+            <span aria-hidden="true">02</span>
+            Setup
+          </button>
+          <button class="nav-button" type="button" data-page="studyPage">
+            <span aria-hidden="true">03</span>
+            Study
+          </button>
+          <button class="nav-button" type="button" data-page="practicePage">
+            <span aria-hidden="true">04</span>
+            Practice
+          </button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <span class="status-pill" id="connectionStatus">Local demo mode</span>
+          <button class="ghost-button" id="exportButton" type="button" title="Export workflow data">
+            Export
+          </button>
+          <button class="ghost-button danger" id="resetButton" type="button" title="Reset learner memory">
+            Reset
+          </button>
+        </div>
+      </aside>
+
+      <main class="main-stage">
+        <section class="page active" id="homePage" aria-labelledby="homeTitle">
+          <div class="page-header">
+            <div>
+              <p class="eyebrow">Workflow</p>
+              <h2 id="homeTitle">Agent command center</h2>
+              <p class="page-copy">A focused trace of how StudyOps turns trusted sources into a study plan, practice, and remediation.</p>
+            </div>
+            <button class="primary-button" id="runWorkflowButton" type="button" title="Run StudyOps workflow">
+              Run workflow
+            </button>
+          </div>
+
+          <div class="metric-grid">
+            <article class="metric-card">
+              <span>Certification</span>
+              <strong id="homeCertificationMetric">AIF-C01</strong>
+            </article>
+            <article class="metric-card">
+              <span>Study notes</span>
+              <strong id="homeNoteMetric">0</strong>
+            </article>
+            <article class="metric-card">
+              <span>Practice score</span>
+              <strong id="homeScoreMetric">0%</strong>
+            </article>
+            <article class="metric-card">
+              <span>Retry queue</span>
+              <strong id="homeRetryMetric">0</strong>
+            </article>
+          </div>
+
+          <section class="panel trace-panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Agents</p>
+                <h3>Workflow trace</h3>
+              </div>
+              <span class="metric-badge" id="traceMetric">0 steps</span>
+            </div>
+            <div class="trace-list" id="traceList"></div>
+          </section>
+        </section>
+
+        <section class="page" id="setupPage" aria-labelledby="setupTitle">
+          <div class="page-header">
+            <div>
+              <p class="eyebrow">Setup</p>
+              <h2 id="setupTitle">Session and source intake</h2>
+              <p class="page-copy">Choose the certification path, define the learner goal, and decide which sources enter the knowledge base.</p>
+            </div>
+          </div>
+
+          <div class="two-column">
+            <section class="panel control-panel">
+              <div class="panel-header compact">
+                <div>
+                  <p class="eyebrow">Session</p>
+                  <h3>Learner settings</h3>
+                </div>
+              </div>
+
+              <label for="providerSelect">Provider</label>
+              <select id="providerSelect">
+                <option value="AWS">Amazon Web Services</option>
+              </select>
+
+              <label for="certificationSelect">Certification</label>
+              <select id="certificationSelect">
+                <option value="AIF-C01">AWS Certified AI Practitioner</option>
+                <option value="CLF-C02">AWS Certified Cloud Practitioner</option>
+              </select>
+
+              <label for="learnerIdInput">Learner ID</label>
+              <input id="learnerIdInput" type="text" value="demo-learner" autocomplete="off" />
+
+              <label for="goalInput">Goal</label>
+              <textarea id="goalInput" rows="4">Prepare for AWS AI Practitioner with a focused daily study loop.</textarea>
+
+              <div class="range-row">
+                <label for="hoursInput">Hours per week</label>
+                <output id="hoursOutput">5</output>
+              </div>
+              <input id="hoursInput" type="range" min="1" max="20" value="5" />
+
+              <div class="range-row">
+                <label for="questionCountInput">Questions</label>
+                <output id="questionCountOutput">5</output>
+              </div>
+              <input id="questionCountInput" type="range" min="1" max="10" value="5" />
+            </section>
+
+            <section class="panel source-panel">
+              <div class="panel-header compact">
+                <div>
+                  <p class="eyebrow">Sources</p>
+                  <h3>Resource intake</h3>
+                </div>
+                <span class="metric-badge" id="sourceMetric">0 sources</span>
+              </div>
+
+              <label for="sourceUrlInput">Source URL</label>
+              <div class="inline-control">
+                <input id="sourceUrlInput" type="url" placeholder="https://docs.aws.amazon.com/..." />
+                <button class="icon-button" id="classifySourceButton" type="button" title="Classify source">
+                  ?
+                </button>
+              </div>
+
+              <label for="fileInput">Study files</label>
+              <input id="fileInput" type="file" multiple accept=".md,.txt,.html,.htm,.pdf" />
+              <button class="secondary-button" id="addFilesButton" type="button" title="Add selected files as notes">
+                Add file notes
+              </button>
+
+              <div class="source-list" id="sourceList" aria-live="polite"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="page" id="studyPage" aria-labelledby="studyTitle">
+          <div class="page-header">
+            <div>
+              <p class="eyebrow">Study</p>
+              <h2 id="studyTitle">Plan and knowledge base</h2>
+              <p class="page-copy">Work domain by domain, review notes, retrieve context, and keep the study loop grounded in citations.</p>
+            </div>
+            <span class="metric-badge" id="planMetric">0 domains</span>
+          </div>
+
+          <div class="study-layout">
+            <section class="panel domain-panel">
+              <div class="panel-header compact">
+                <div>
+                  <p class="eyebrow">Plan</p>
+                  <h3 id="planTitle">Weekly study plan</h3>
+                </div>
+              </div>
+              <div class="domain-list" id="domainList"></div>
+            </section>
+
+            <section class="panel active-study-panel">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Active Study</p>
+                  <h3 id="activeDomainTitle">Select a domain</h3>
+                </div>
+                <span class="metric-badge" id="activeDomainHours">0h</span>
+              </div>
+              <div class="study-guide" id="activeStudyGuide"></div>
+              <div class="checklist" id="studyChecklist"></div>
+            </section>
+
+            <section class="panel notebook-panel">
+              <div class="panel-header">
+                <div>
+                  <p class="eyebrow">Knowledge Base</p>
+                  <h3>Notebook and retrieval</h3>
+                </div>
+                <span class="metric-badge" id="noteMetric">0 notes</span>
+              </div>
+
+              <div class="inline-control">
+                <input id="ragQueryInput" type="search" placeholder="Search notebook context" />
+                <button class="icon-button" id="retrieveButton" type="button" title="Retrieve context">
+                  &gt;
+                </button>
+              </div>
+
+              <div class="study-columns">
+                <div>
+                  <h4>Notes</h4>
+                  <div class="note-list" id="noteList"></div>
+                </div>
+                <div>
+                  <h4>Retrieved context</h4>
+                  <div class="context-results" id="contextResults"></div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="page" id="practicePage" aria-labelledby="practiceTitle">
+          <div class="page-header">
+            <div>
+              <p class="eyebrow">Practice</p>
+              <h2 id="practiceTitle">Exam-style quiz and memory</h2>
+              <p class="page-copy">Test understanding, inspect detailed explanations, and keep missed concepts in the retry queue.</p>
+            </div>
+            <span class="metric-badge" id="quizMetric">0 ready</span>
+          </div>
+
+          <div class="practice-layout">
+            <section class="panel quiz-panel">
+              <div class="panel-header compact">
+                <div>
+                  <p class="eyebrow">Quiz</p>
+                  <h3>Generated practice</h3>
+                </div>
+              </div>
+
+              <p class="disclaimer">Generated exam-style practice, not official questions.</p>
+              <form id="quizForm"></form>
+              <div class="quiz-actions">
+                <button class="primary-button" id="submitQuizButton" type="submit" form="quizForm" title="Submit quiz answers">
+                  Submit answers
+                </button>
+                <button class="secondary-button" id="retryButton" type="button" title="Practice retry queue">
+                  Retry weak topics
+                </button>
+              </div>
+              <div class="feedback-panel" id="feedbackPanel" aria-live="polite"></div>
+            </section>
+
+            <aside class="panel memory-panel" aria-label="Learner memory">
+              <div class="panel-header compact">
+                <div>
+                  <p class="eyebrow">Memory</p>
+                  <h3>Progress</h3>
+                </div>
+              </div>
+
+              <div class="confidence-block">
+                <div class="confidence-value" id="confidenceValue">0%</div>
+                <div class="confidence-label">Confidence score</div>
+                <div class="meter" aria-hidden="true"><span id="confidenceMeter"></span></div>
+              </div>
+
+              <div class="memory-section">
+                <h4>Weak topics</h4>
+                <div id="weakTopicList" class="compact-list"></div>
+              </div>
+
+              <div class="memory-section">
+                <h4>Retry queue</h4>
+                <div id="retryQueueList" class="compact-list"></div>
+              </div>
+
+              <div class="memory-section">
+                <h4>Attempts</h4>
+                <div id="attemptList" class="compact-list"></div>
+              </div>
+            </aside>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
