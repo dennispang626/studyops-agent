@@ -248,13 +248,17 @@ const API_BASE = (
   ""
 ).replace(/\/$/, "");
 
+const SESSION_SETTINGS_KEY = "studyops_session_settings";
+
 const state = {
   activeDomainIndex: 0,
+  provider: "AWS",
   certification: "AIF-C01",
   learnerId: "demo-learner",
   learnerGoal: "",
   hoursPerWeek: 5,
   questionCount: 5,
+  setupDirty: false,
   trace: [],
   sources: [],
   notes: [],
@@ -269,6 +273,7 @@ const els = {};
 
 document.addEventListener("DOMContentLoaded", () => {
   bindElements();
+  loadSetupSettings();
   bindEvents();
   hydrateInputs();
   loadSessionMemory();
@@ -283,6 +288,8 @@ function bindElements() {
     "runWorkflowButton",
     "providerSelect",
     "certificationSelect",
+    "saveSetupButton",
+    "setupStatus",
     "learnerIdInput",
     "goalInput",
     "hoursInput",
@@ -333,27 +340,26 @@ function bindEvents() {
     button.addEventListener("click", () => setPage(button.dataset.page));
   });
 
-  els.certificationSelect.addEventListener("change", () => {
-    state.activeDomainIndex = 0;
-    runWorkflow({ preferApi: false });
-  });
+  els.providerSelect.addEventListener("change", markSetupDirty);
+  els.certificationSelect.addEventListener("change", markSetupDirty);
   els.learnerIdInput.addEventListener("change", () => {
-    state.learnerId = normalizeLearnerId(els.learnerIdInput.value);
-    els.learnerIdInput.value = state.learnerId;
-    loadSessionMemory();
-    renderAll();
+    els.learnerIdInput.value = normalizeLearnerId(els.learnerIdInput.value);
+    markSetupDirty();
   });
-  els.goalInput.addEventListener("input", () => {
-    state.learnerGoal = els.goalInput.value.trim();
-  });
+  els.goalInput.addEventListener("input", markSetupDirty);
   els.hoursInput.addEventListener("input", () => {
     els.hoursOutput.textContent = els.hoursInput.value;
+    markSetupDirty();
   });
   els.questionCountInput.addEventListener("input", () => {
     els.questionCountOutput.textContent = els.questionCountInput.value;
+    markSetupDirty();
+  });
+  els.saveSetupButton.addEventListener("click", () => {
+    saveSetup({ preferApi: false });
   });
   els.runWorkflowButton.addEventListener("click", () => {
-    runWorkflow({ preferApi: true });
+    saveSetup({ preferApi: true });
   });
   els.classifySourceButton.addEventListener("click", classifyEnteredSource);
   els.addFilesButton.addEventListener("click", addSelectedFilesAsNotes);
@@ -374,6 +380,7 @@ function setPage(pageId) {
 }
 
 function hydrateInputs() {
+  state.provider = els.providerSelect.value;
   state.certification = els.certificationSelect.value;
   state.learnerId = normalizeLearnerId(els.learnerIdInput.value);
   state.learnerGoal = els.goalInput.value.trim();
@@ -381,6 +388,73 @@ function hydrateInputs() {
   state.questionCount = Number(els.questionCountInput.value);
   els.hoursOutput.textContent = String(state.hoursPerWeek);
   els.questionCountOutput.textContent = String(state.questionCount);
+}
+
+function loadSetupSettings() {
+  const raw = localStorage.getItem(SESSION_SETTINGS_KEY);
+  if (!raw) {
+    return;
+  }
+
+  try {
+    const settings = JSON.parse(raw);
+    if (settings.provider && optionExists(els.providerSelect, settings.provider)) {
+      els.providerSelect.value = settings.provider;
+    }
+    if (settings.certification && optionExists(els.certificationSelect, settings.certification)) {
+      els.certificationSelect.value = settings.certification;
+    }
+    if (settings.learnerId) {
+      els.learnerIdInput.value = normalizeLearnerId(settings.learnerId);
+    }
+    if (typeof settings.learnerGoal === "string") {
+      els.goalInput.value = settings.learnerGoal;
+    }
+    if (settings.hoursPerWeek) {
+      els.hoursInput.value = String(clamp(settings.hoursPerWeek, 1, 20));
+    }
+    if (settings.questionCount) {
+      els.questionCountInput.value = String(clamp(settings.questionCount, 1, 10));
+    }
+  } catch (error) {
+    localStorage.removeItem(SESSION_SETTINGS_KEY);
+  }
+}
+
+function saveSetupSettings() {
+  localStorage.setItem(
+    SESSION_SETTINGS_KEY,
+    JSON.stringify({
+      provider: state.provider,
+      certification: state.certification,
+      learnerId: state.learnerId,
+      learnerGoal: state.learnerGoal,
+      hoursPerWeek: state.hoursPerWeek,
+      questionCount: state.questionCount,
+      savedAt: new Date().toISOString(),
+    }),
+  );
+}
+
+async function saveSetup({ preferApi }) {
+  hydrateInputs();
+  state.activeDomainIndex = 0;
+  saveSetupSettings();
+  await runWorkflow({ preferApi });
+  state.setupDirty = false;
+  renderSetupStatus();
+  setConnectionStatus(`Setup saved: ${state.certification}`);
+}
+
+function markSetupDirty() {
+  state.setupDirty = true;
+  renderSetupStatus();
+}
+
+function renderSetupStatus() {
+  els.setupStatus.textContent = state.setupDirty ? "Unsaved changes" : "Saved";
+  els.setupStatus.classList.toggle("dirty", state.setupDirty);
+  els.setupStatus.classList.toggle("saved", !state.setupDirty);
 }
 
 async function runWorkflow({ preferApi }) {
@@ -757,6 +831,7 @@ function retryWeakTopics() {
 }
 
 function renderAll() {
+  renderSetupStatus();
   renderHomeMetrics();
   renderSources();
   renderDomains();
@@ -1151,6 +1226,7 @@ function calculateConfidence(attempts) {
 
 function exportWorkflowJson() {
   const payload = {
+    provider: state.provider,
     certification: state.certification,
     learner_id: state.learnerId,
     trace: state.trace,
@@ -1198,6 +1274,10 @@ function tokenize(text) {
 
 function clamp(value, minimum, maximum) {
   return Math.min(Math.max(Number(value), minimum), maximum);
+}
+
+function optionExists(select, value) {
+  return Array.from(select.options).some((option) => option.value === value);
 }
 
 function escapeHtml(value) {

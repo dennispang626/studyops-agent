@@ -23,6 +23,8 @@ class Phase6FrontendContractTests(unittest.TestCase):
             'id="studyPage"',
             'id="practicePage"',
             'id="certificationSelect"',
+            'id="saveSetupButton"',
+            'id="setupStatus"',
             'id="runWorkflowButton"',
             'id="sourceList"',
             'id="domainList"',
@@ -43,6 +45,9 @@ class Phase6FrontendContractTests(unittest.TestCase):
             "retryQueue",
             "buildPracticeQuiz",
             "classifySource",
+            "studyops_session_settings",
+            "saveSetup",
+            "Unsaved changes",
             "option_explanations",
             "Correct is",
         ]:

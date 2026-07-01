@@ -94,7 +94,8 @@ h4 {
 .inline-control,
 .range-row,
 .quiz-actions,
-.source-actions {
+.source-actions,
+.setup-actions {
   display: flex;
   align-items: center;
 }
@@ -330,6 +331,22 @@ output,
   padding: 0 9px;
   background: var(--surface-2);
   color: var(--ink);
+}
+
+.metric-badge.saved {
+  background: rgba(21, 128, 61, 0.12);
+  color: var(--green);
+}
+
+.metric-badge.dirty {
+  background: rgba(183, 121, 31, 0.14);
+  color: var(--amber);
+}
+
+.setup-actions {
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .status-pill {
@@ -789,4 +806,3 @@ output,
     width: 100%;
   }
 }
-
