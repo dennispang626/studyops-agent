@@ -9,6 +9,7 @@ Files:
 - `video-script.md`: 5-minute demo video script.
 - `demo-checklist.md`: recording checklist and demo path.
 - `architecture-for-writeup.md`: Mermaid architecture diagram and notes.
+- `media/`: cover image and screenshots for the Kaggle media gallery.
 
 The codebase evidence lives in:
 
