@@ -13,6 +13,7 @@
 # limitations under the License.
 import logging
 import os
+import re
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -36,6 +37,10 @@ from app.workflows.studyops_workflow import (
 
 setup_telemetry()
 logger = logging.getLogger(__name__)
+FRONT_MATTER_RE = re.compile(r"\A---\s.*?---\s", re.DOTALL)
+MARKDOWN_LINK_RE = re.compile(r"\[\[([^\]|]+)(?:\|([^\]]+))?\]\]")
+MARKDOWN_URL_RE = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
+HEADING_RE = re.compile(r"^\s{0,3}#{1,6}\s*", re.MULTILINE)
 DEFAULT_ALLOW_ORIGINS = [
     "https://studyops-agent.vercel.app",
     "http://localhost:3000",
@@ -56,6 +61,28 @@ def parse_allow_origins() -> list[str]:
 
 
 allow_origins = parse_allow_origins()
+
+
+def clean_rag_text(text: str) -> str:
+    """Convert raw Markdown chunks into readable study context snippets."""
+
+    cleaned = FRONT_MATTER_RE.sub("", text or "")
+    cleaned = MARKDOWN_LINK_RE.sub(lambda match: match.group(2) or match.group(1), cleaned)
+    cleaned = MARKDOWN_URL_RE.sub(lambda match: f"{match.group(1)} ({match.group(2)})", cleaned)
+    cleaned = HEADING_RE.sub("", cleaned)
+    cleaned = cleaned.replace("---", " ")
+    lines = [line.strip() for line in cleaned.splitlines() if line.strip()]
+    if lines and (
+        lines[0][0].islower()
+        or "]]" in lines[0]
+        or (len(lines[0]) < 16 and not lines[0].endswith((".", "?", "!", ":")))
+    ):
+        lines = lines[1:]
+    cleaned = "\n".join(lines)
+    cleaned = cleaned.replace("[[", "").replace("]]", "")
+    cleaned = re.sub(r"\n{2,}", "\n", cleaned)
+    cleaned = re.sub(r"[ \t]+", " ", cleaned)
+    return cleaned.strip()
 
 # Artifact bucket for ADK (created by Terraform, passed via env var)
 logs_bucket_name = os.environ.get("LOGS_BUCKET_NAME")
@@ -254,7 +281,7 @@ def retrieve_rag_context_endpoint(request: StudyOpsRagContextRequest) -> dict[st
         }
         safe_matches.append(
             {
-                "text": match.get("text", ""),
+                "text": clean_rag_text(match.get("text", "")),
                 "metadata": safe_metadata,
                 "score": match.get("score", 0),
                 "citation": match.get("citation", "") or safe_metadata["path"],

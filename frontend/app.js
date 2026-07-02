@@ -917,7 +917,7 @@ async function retrieveContext() {
         body: JSON.stringify({
           certification: state.certification,
           query: retrievalQuery,
-          top_k: 5,
+          top_k: 7,
         }),
       });
       if (!response.ok) {
@@ -954,6 +954,7 @@ function contextItemFromBackendMatch(match) {
   const metadata = match.metadata || {};
   const title = metadata.title || metadata.path || "Retrieved context";
   const citation = match.citation || metadata.path || "";
+  const body = cleanRetrievedText(match.text || "");
   return {
     note: {
       id: metadata.path || `rag-${Date.now()}`,
@@ -962,10 +963,11 @@ function contextItemFromBackendMatch(match) {
       source: citation,
       citation,
       domain: metadata.type || metadata.certification || "rag_context",
-      body: match.text || "",
+      body,
     },
     score: formatScore(match.score),
     backend: match.backend || "backend",
+    type: metadata.type || "note",
   };
 }
 
@@ -1241,11 +1243,22 @@ function renderContext() {
   state.contextResults.forEach((item) => {
     const row = document.createElement("div");
     row.className = "context-row";
-    const backend = item.backend ? ` | ${item.backend}` : "";
+    const backend = item.backend || "retrieval";
+    const type = prettifyType(item.type || item.note.domain);
+    const excerpt = readableExcerpt(item.note.body, 620);
+    const bullets = studyBullets(item.note.body);
     row.innerHTML = `
-      <strong>${escapeHtml(item.note.title)}</strong>
-      <span>Score ${item.score}${escapeHtml(backend)} | Citation: ${escapeHtml(item.note.citation)}</span>
-      <span>${escapeHtml(item.note.body.slice(0, 220))}</span>
+      <div class="context-head">
+        <strong>${escapeHtml(item.note.title)}</strong>
+        <span class="difficulty-chip">${escapeHtml(type)}</span>
+      </div>
+      <div class="context-meta">
+        <span>Relevance ${escapeHtml(item.score)}</span>
+        <span>${escapeHtml(backend)}</span>
+      </div>
+      <p>${escapeHtml(excerpt)}</p>
+      ${bullets.length ? `<ul>${bullets.map((bullet) => `<li>${escapeHtml(bullet)}</li>`).join("")}</ul>` : ""}
+      <span class="context-citation">Citation: ${escapeHtml(item.note.citation)}</span>
     `;
     els.contextResults.append(row);
   });
@@ -1540,6 +1553,70 @@ function formatScore(value) {
     return "0";
   }
   return String(Math.round(numeric * 1000) / 1000);
+}
+
+function cleanRetrievedText(value) {
+  const lines = String(value || "")
+    .replace(/^---[\s\S]*?---\s*/, "")
+    .replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g, "$2")
+    .replace(/\[\[([^\]]+)\]\]/g, "$1")
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1 ($2)")
+    .replace(/^#{1,6}\s*/gm, "")
+    .replace(/---/g, " ")
+    .replace(/\[\[|\]\]/g, "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (
+    lines.length &&
+    (/^[a-z]/.test(lines[0]) ||
+      lines[0].includes("]]") ||
+      (lines[0].length < 16 && !/[.?!:]$/.test(lines[0])))
+  ) {
+    lines.shift();
+  }
+  return lines
+    .join("\n")
+    .replace(/[ \t]+/g, " ")
+    .trim();
+}
+
+function readableExcerpt(value, limit) {
+  const cleaned = cleanRetrievedText(value);
+  if (cleaned.length <= limit) {
+    return cleaned;
+  }
+  const slice = cleaned.slice(0, limit);
+  const sentenceEnd = Math.max(slice.lastIndexOf(". "), slice.lastIndexOf("? "), slice.lastIndexOf("! "));
+  if (sentenceEnd > limit * 0.55) {
+    return `${slice.slice(0, sentenceEnd + 1).trim()} ...`;
+  }
+  return `${slice.trim()} ...`;
+}
+
+function studyBullets(value) {
+  const cleaned = cleanRetrievedText(value);
+  const explicitBullets = cleaned
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith("- "))
+    .map((line) => line.replace(/^-\s*/, ""))
+    .filter((line) => line.length >= 18 && line.length <= 180);
+  if (explicitBullets.length) {
+    return explicitBullets.slice(0, 4);
+  }
+  const sentences = cleaned
+    .split(/(?<=[.!?])\s+/)
+    .map((sentence) => sentence.trim())
+    .filter((sentence) => sentence.length >= 45 && sentence.length <= 180);
+  return sentences.slice(0, 3);
+}
+
+function prettifyType(value) {
+  return String(value || "note")
+    .replace(/_/g, " ")
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function normalizeApiBase(value) {
