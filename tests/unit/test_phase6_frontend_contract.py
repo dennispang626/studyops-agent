@@ -45,6 +45,7 @@ class Phase6FrontendContractTests(unittest.TestCase):
         for marker in [
             "/api/studyops/workflow",
             "/api/studyops/health",
+            "/api/studyops/rag-context",
             "/api/studyops/ingest-url",
             "/api/studyops/ingest-file",
             "/api/studyops/practice-submit",
@@ -52,6 +53,7 @@ class Phase6FrontendContractTests(unittest.TestCase):
             "saveApiBase",
             "testApiBase",
             "clearApiBase",
+            "contextItemFromBackendMatch",
             "studyops_memory:",
             "retryQueue",
             "buildPracticeQuiz",

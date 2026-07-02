@@ -124,6 +124,14 @@ class StudyOpsQuizRequest(BaseModel):
     question_count: int = Field(default=5, ge=1, le=10)
 
 
+class StudyOpsRagContextRequest(BaseModel):
+    """Request body for retrieving cited RAG context."""
+
+    certification: str = Field(default="AIF-C01")
+    query: str = Field(default="")
+    top_k: int = Field(default=5, ge=1, le=10)
+
+
 class StudyOpsIngestUrlRequest(BaseModel):
     """Request body for URL ingestion into the OKF-style wiki."""
 
@@ -178,6 +186,7 @@ def studyops_health_endpoint() -> dict[str, Any]:
         },
         "routes": [
             "/api/studyops/workflow",
+            "/api/studyops/rag-context",
             "/api/studyops/ingest-url",
             "/api/studyops/ingest-file",
             "/api/studyops/practice-submit",
@@ -219,6 +228,48 @@ def generate_practice_quiz_endpoint(request: StudyOpsQuizRequest) -> dict[str, A
         query=request.query,
         question_count=request.question_count,
     )
+
+
+@app.post("/api/studyops/rag-context")
+def retrieve_rag_context_endpoint(request: StudyOpsRagContextRequest) -> dict[str, Any]:
+    """Retrieve cited context from the local Obsidian/RAG index."""
+
+    ensure_storage_dirs()
+    query = request.query.strip()
+    matches = StudyOpsRagIndex().query(
+        query=query,
+        certification=request.certification,
+        top_k=request.top_k,
+    )
+    safe_matches = []
+    for match in matches:
+        metadata = match.get("metadata", {}) if isinstance(match, dict) else {}
+        safe_metadata = {
+            "path": metadata.get("path", ""),
+            "title": metadata.get("title", ""),
+            "certification": metadata.get("certification", ""),
+            "type": metadata.get("type", ""),
+            "tags": metadata.get("tags", ""),
+            "review_status": metadata.get("review_status", ""),
+        }
+        safe_matches.append(
+            {
+                "text": match.get("text", ""),
+                "metadata": safe_metadata,
+                "score": match.get("score", 0),
+                "citation": match.get("citation", "") or safe_metadata["path"],
+                "backend": match.get("backend", "unknown"),
+            }
+        )
+
+    return {
+        "query": query,
+        "certification": request.certification,
+        "top_k": request.top_k,
+        "matches": safe_matches,
+        "citations": [match["citation"] for match in safe_matches],
+        "retrieval_backend": safe_matches[0]["backend"] if safe_matches else "none",
+    }
 
 
 @app.post("/api/studyops/ingest-url")

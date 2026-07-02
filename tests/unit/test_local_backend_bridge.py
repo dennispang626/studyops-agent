@@ -22,6 +22,7 @@ class LocalBackendBridgeContractTests(unittest.TestCase):
             "vault_notes",
             "rag_index_ready",
             "sqlite_ready",
+            "/api/studyops/rag-context",
             "/api/studyops/ingest-url",
             "/api/studyops/ingest-file",
         ]:

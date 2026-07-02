@@ -794,7 +794,7 @@ async function classifyEnteredSource() {
       state.sources = [source, ...state.sources.filter((item) => item.url !== url)];
       state.notes = [noteFromIngestion(result), ...state.notes].filter(Boolean);
       els.sourceUrlInput.value = "";
-      retrieveContext();
+      await retrieveContext();
       renderAll();
       setConnectionStatus("URL ingested");
       return;
@@ -854,7 +854,7 @@ async function addSelectedFilesAsNotes() {
     if (backendNotes.length) {
       state.notes = [...backendNotes.filter(Boolean), ...state.notes];
       els.fileInput.value = "";
-      retrieveContext();
+      await retrieveContext();
       renderAll();
       setConnectionStatus("Files ingested");
       return;
@@ -881,7 +881,7 @@ async function addSelectedFilesAsNotes() {
   }
   state.notes = [...notes, ...state.notes];
   els.fileInput.value = "";
-  retrieveContext();
+  await retrieveContext();
   renderAll();
 }
 
@@ -901,11 +901,42 @@ function noteFromIngestion(result) {
   };
 }
 
-function retrieveContext() {
-  const query = els.ragQueryInput.value.trim().toLowerCase();
+async function retrieveContext() {
+  const query = els.ragQueryInput.value.trim();
   const cert = currentCertification();
   const activeDomain = getActiveWeek();
   const fallbackQuery = [activeDomain.focus, ...cert.focusTerms].join(" ");
+  const retrievalQuery = query || fallbackQuery;
+
+  if (apiBase) {
+    try {
+      setConnectionStatus("Retrieving RAG context");
+      const response = await fetch(`${apiBase}/api/studyops/rag-context`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          certification: state.certification,
+          query: retrievalQuery,
+          top_k: 5,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error(`RAG context failed with ${response.status}`);
+      }
+      const payload = await response.json();
+      state.contextResults = (payload.matches || []).map(contextItemFromBackendMatch);
+      renderContext();
+      setConnectionStatus(
+        state.contextResults.length
+          ? `RAG context: ${payload.retrieval_backend || "backend"}`
+          : "No RAG matches",
+      );
+      return;
+    } catch (error) {
+      setConnectionStatus("Local retrieval fallback");
+    }
+  }
+
   const terms = tokenize(query || fallbackQuery);
   state.contextResults = state.notes
     .map((note) => {
@@ -917,6 +948,25 @@ function retrieveContext() {
     .sort((a, b) => b.score - a.score)
     .slice(0, 4);
   renderContext();
+}
+
+function contextItemFromBackendMatch(match) {
+  const metadata = match.metadata || {};
+  const title = metadata.title || metadata.path || "Retrieved context";
+  const citation = match.citation || metadata.path || "";
+  return {
+    note: {
+      id: metadata.path || `rag-${Date.now()}`,
+      kind: "rag",
+      title,
+      source: citation,
+      citation,
+      domain: metadata.type || metadata.certification || "rag_context",
+      body: match.text || "",
+    },
+    score: formatScore(match.score),
+    backend: match.backend || "backend",
+  };
 }
 
 async function submitQuiz(event) {
@@ -1191,9 +1241,10 @@ function renderContext() {
   state.contextResults.forEach((item) => {
     const row = document.createElement("div");
     row.className = "context-row";
+    const backend = item.backend ? ` | ${item.backend}` : "";
     row.innerHTML = `
       <strong>${escapeHtml(item.note.title)}</strong>
-      <span>Score ${item.score} | Citation: ${escapeHtml(item.note.citation)}</span>
+      <span>Score ${item.score}${escapeHtml(backend)} | Citation: ${escapeHtml(item.note.citation)}</span>
       <span>${escapeHtml(item.note.body.slice(0, 220))}</span>
     `;
     els.contextResults.append(row);
@@ -1481,6 +1532,14 @@ function tokenize(text) {
 
 function clamp(value, minimum, maximum) {
   return Math.min(Math.max(Number(value), minimum), maximum);
+}
+
+function formatScore(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return "0";
+  }
+  return String(Math.round(numeric * 1000) / 1000);
 }
 
 function normalizeApiBase(value) {

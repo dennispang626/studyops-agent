@@ -153,6 +153,8 @@ Then use the live frontend Setup page:
 2. Click `Save API`.
 3. Click `Test API`.
 4. Add URLs or files from Setup to write them into the local knowledge pipeline.
+5. Use Study -> Retrieve to search the backend Obsidian/RAG index with cited
+   context.
 
 The health endpoint is available at:
 
