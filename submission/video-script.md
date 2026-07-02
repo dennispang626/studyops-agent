@@ -27,8 +27,9 @@ The system uses a multi-agent ADK design:
 - Practice Coach Agent
 - Examiner and Remediation Agent
 
-Mention the stack: FastAPI backend, optional MCP tools, Obsidian vault, Chroma
-retrieval, SQLite learner memory, and Vercel-ready frontend.
+Mention the stack: static Vercel UI, FastAPI backend bridge, optional MCP
+tools, OKF-style Obsidian vault, Chroma-compatible retrieval, SQLite learner
+memory, and ADK agent orchestration.
 
 ## 1:45 - 2:30 Setup and Sources
 
@@ -39,13 +40,18 @@ Classify an official AWS source. Explain that StudyOps blocks exam dumps,
 prompt-injection phrases, and unsafe source text. Show file-note ingestion as
 the path for learner-owned notes.
 
+Mention that the public Vercel UI is connected to a local backend bridge for
+the demo, so private vault files, API keys, and SQLite memory stay on the
+learner's laptop.
+
 ## 2:30 - 3:20 Study Page
 
 Show the Study page.
 
 Click through the domain plan. Explain how StudyOps turns domains into active
 study guidance, checklist items, notes, and RAG-style retrieval. Show a query
-against the notebook and point to citations.
+against the notebook and point to cleaned citations, relevance scores, and
+study bullets returned by the backend `/api/studyops/rag-context` endpoint.
 
 ## 3:20 - 4:20 Practice and Memory
 
@@ -74,4 +80,3 @@ Summarize course concepts demonstrated:
 
 StudyOps is a focused MVP for career upskilling. It helps learners turn noisy
 certification prep into a safe, structured, measurable study loop.
-

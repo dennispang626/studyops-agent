@@ -13,15 +13,20 @@ flowchart TD
     ROOT --> PC["Practice Coach Agent"]
     ROOT --> ER["Examiner and Remediation Agent"]
 
-    SC --> SOURCES["Official AWS sources and user uploads"]
+    SC --> SOURCES["Raw URLs, PDFs, and learner uploads"]
+    SOURCES --> EXTRACT["Extracted source text"]
+    EXTRACT --> TF
     TF --> SAFE["Source trust, exam-dump blocking, prompt-injection checks"]
-    KA --> OBS["Obsidian Markdown vault"]
-    OBS --> RAG["Chroma-compatible RAG index"]
+    SAFE --> KA
+    KA --> OBS["OKF-style Obsidian Markdown wiki"]
+    OBS --> RAG["Chroma-compatible vector index"]
+    RAG --> RET["Cited RAG retrieval"]
     SP --> PLAN["Domain study plan"]
     PC --> QUIZ["Generated exam-style practice questions"]
     ER --> MEM["SQLite attempts, weak topics, retry queue"]
 
-    RAG --> PC
+    RET --> PC
+    RET --> SP
     MEM --> SP
     MEM --> ER
 ```
@@ -37,4 +42,3 @@ flowchart TD
 All web and uploaded content is treated as untrusted. The trust layer blocks
 exam-dump language, flags prompt-injection phrases, and redacts obvious secrets
 or PII before storage.
-

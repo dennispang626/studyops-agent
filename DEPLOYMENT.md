@@ -15,8 +15,10 @@ until tests pass and the deployment target is explicitly approved.
 - Production frontend: https://studyops-agent.vercel.app
 - Vercel project: https://vercel.com/dennis-heku/studyops-agent
 
-The backend has not been deployed. The production frontend currently runs in
-browser-local demo mode.
+The backend has not been deployed to a public cloud service. The production
+frontend can run in browser-local demo mode, or it can connect to the local
+FastAPI bridge for personal demos that write into Obsidian, the retrieval
+index, and SQLite memory on the laptop.
 
 ## 1. GitHub Packaging
 
@@ -58,7 +60,13 @@ Recommended Vercel settings:
 - Build command: none
 - Output directory: `.`
 
-The frontend works in browser-local demo mode without backend access.
+The frontend works in browser-local demo mode without backend access. For the
+recommended capstone demo, start the local backend bridge and set the Setup
+page API base URL to:
+
+```text
+http://127.0.0.1:8000
+```
 
 When a public backend exists, configure:
 
@@ -98,7 +106,13 @@ hosting and Gemini Enterprise registration.
 
 ## 4. Backend Local Run
 
-After installing dependencies:
+Recommended local bridge:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\start-local-backend.ps1
+```
+
+Manual backend run after installing dependencies:
 
 ```powershell
 uv sync
@@ -107,7 +121,11 @@ uv run uvicorn app.fast_api_app:app --host 0.0.0.0 --port 8080
 
 Useful endpoints:
 
+- `GET /api/studyops/health`
 - `POST /api/studyops/workflow`
+- `POST /api/studyops/ingest-url`
+- `POST /api/studyops/ingest-file`
+- `POST /api/studyops/rag-context`
 - `POST /api/studyops/study-plan`
 - `POST /api/studyops/practice-quiz`
 - `POST /api/studyops/practice-submit`

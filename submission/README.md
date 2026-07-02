@@ -18,3 +18,15 @@ The codebase evidence lives in:
 - `frontend/`
 - `tests/eval/`
 
+Current public demo links:
+
+- GitHub: https://github.com/dennispang626/studyops-agent
+- Frontend: https://studyops-agent.vercel.app
+
+Recommended recording setup:
+
+- Run the public Vercel UI.
+- Start the local backend bridge with `scripts/start-local-backend.ps1`.
+- In Setup, save `http://127.0.0.1:8000` as the API base URL and click `Test API`.
+- Use the local bridge to demonstrate Obsidian note writing, RAG retrieval, and
+  SQLite learner memory without exposing private keys or local files.

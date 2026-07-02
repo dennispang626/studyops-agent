@@ -9,8 +9,11 @@ frontend for live UI tuning.
 - Production frontend: https://studyops-agent.vercel.app
 - Vercel project: https://vercel.com/dennis-heku/studyops-agent
 - The backend is packaged for a later Cloud Run deployment.
-- The production frontend currently runs in browser-local demo mode.
-- No Google Cloud credentials have been used.
+- The production frontend can run in browser-local demo mode or connect to the
+  local FastAPI bridge at `http://127.0.0.1:8000`.
+- The local bridge writes to the private Obsidian vault, RAG index, and SQLite
+  learner memory on the laptop.
+- No Google Cloud credentials are required for the current capstone demo path.
 
 ## Preflight
 
@@ -54,7 +57,9 @@ For future frontend updates:
 npx vercel@latest deploy frontend --prod --yes --scope dennis-heku
 ```
 
-The frontend works without a backend in browser-local demo mode.
+The frontend works without a backend in browser-local demo mode. For the
+stronger personal demo, start the local backend bridge and set the Setup page
+API base URL to `http://127.0.0.1:8000`.
 
 When a backend is deployed later, connect it with:
 

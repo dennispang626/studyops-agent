@@ -3,7 +3,7 @@ name = "studyops-agent"
 version = "0.1.0"
 description = "ADK-powered certification study coach for accessible career upskilling"
 authors = [
-    {name = "Your Name", email = "your@email.com"},
+    {name = "Dennis Pang Jia Wang", email = "dennispang626@users.noreply.github.com"},
 ]
 
 

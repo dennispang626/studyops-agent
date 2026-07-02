@@ -7,8 +7,9 @@ generating grounded practice questions, tracking weak topics, and re-asking
 missed concepts until the learner improves.
 
 This project was scaffolded with `agents-cli` and Google ADK as a local-first
-prototype. The web UI can run as a static Vercel demo now; cloud deployment
-support will be added after the MVP is verified.
+prototype. The web UI is deployed as a static Vercel app, and it can connect
+to a local FastAPI bridge for personal use so the browser can write to the
+Obsidian vault, rebuild the retrieval index, and store SQLite learning memory.
 
 ## Capstone Track
 
@@ -30,7 +31,7 @@ Track: Agents for Good
 ## Architecture
 
 ```text
-Vercel Next.js UI
+Static Vercel UI
   -> FastAPI Agent Gateway
     -> ADK Root Agent: StudyOps Orchestrator
       -> Source Curator Agent
@@ -44,6 +45,17 @@ Storage:
   data/obsidian_vault/ -> human-readable Markdown knowledge base
   data/chroma/ -> local vector index
   data/sqlite/ -> learner progress and retry queue
+```
+
+Knowledge pipeline:
+
+```text
+Raw uploads / URLs / PDFs
+  -> extracted source text
+  -> OKF-style Obsidian Markdown wiki
+  -> Chroma-compatible vector index
+  -> RAG retrieval
+  -> quiz, study, and remediation agents
 ```
 
 ## Course Concepts Demonstrated
@@ -222,6 +234,14 @@ Phase 9 GitHub and Vercel handoff is complete:
 - Repeatable preflight script exists.
 - Print-only release command plan exists.
 - Phase 9 handoff asset tests exist.
+- Local backend bridge can connect the public Vercel UI to the private laptop
+  knowledge pipeline.
+- Study page retrieves cleaned, cited backend RAG context through
+  `/api/studyops/rag-context`.
+- Practice submit can store attempts, weak topics, confidence, and retry queue
+  data through `/api/studyops/practice-submit`.
 
-The frontend is deployed to Vercel for live UI tuning. Backend deployment still
-needs explicit approval plus Google Cloud access.
+The frontend is deployed to Vercel for live UI tuning. For the capstone demo,
+the recommended setup is the public Vercel UI plus the local backend bridge.
+Full cloud backend deployment still needs explicit approval plus Google Cloud
+access.
