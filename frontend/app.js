@@ -256,6 +256,8 @@ const state = {
   hoursPerWeek: 5,
   questionCount: 5,
   setupDirty: false,
+  backendHealth: apiBase ? "saved" : "local",
+  backendSummary: null,
   trace: [],
   sources: [],
   notes: [],
@@ -290,6 +292,7 @@ function bindElements() {
     "apiBaseInput",
     "apiBaseStatus",
     "saveApiBaseButton",
+    "testApiBaseButton",
     "clearApiBaseButton",
     "learnerIdInput",
     "goalInput",
@@ -360,6 +363,7 @@ function bindEvents() {
     saveSetup({ preferApi: false });
   });
   els.saveApiBaseButton.addEventListener("click", saveApiBase);
+  els.testApiBaseButton.addEventListener("click", testApiBase);
   els.clearApiBaseButton.addEventListener("click", clearApiBase);
   els.runWorkflowButton.addEventListener("click", () => {
     saveSetup({ preferApi: true });
@@ -467,10 +471,50 @@ function saveApiBase() {
   els.apiBaseInput.value = apiBase;
   if (apiBase) {
     localStorage.setItem(API_BASE_STORAGE_KEY, apiBase);
+    state.backendHealth = "saved";
+    state.backendSummary = null;
     setConnectionStatus("Backend URL saved");
   } else {
     localStorage.removeItem(API_BASE_STORAGE_KEY);
+    state.backendHealth = "local";
+    state.backendSummary = null;
     setConnectionStatus("Browser-local demo mode");
+  }
+  renderApiBaseStatus();
+}
+
+async function testApiBase() {
+  saveApiBase();
+  if (!apiBase) {
+    state.backendHealth = "local";
+    state.backendSummary = null;
+    setConnectionStatus("Enter backend URL first");
+    renderApiBaseStatus();
+    return;
+  }
+
+  state.backendHealth = "testing";
+  renderApiBaseStatus();
+  setConnectionStatus("Testing backend");
+
+  try {
+    const response = await fetch(`${apiBase}/api/studyops/health`, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) {
+      throw new Error(`Health check failed with ${response.status}`);
+    }
+    const health = await response.json();
+    state.backendHealth = "online";
+    state.backendSummary = health;
+    const noteCount = health.storage ? health.storage.vault_notes : 0;
+    const indexStatus = health.storage ? health.storage.rag_index_backend : "unknown";
+    setConnectionStatus(`Backend online: ${noteCount} notes, ${indexStatus}`);
+  } catch (error) {
+    state.backendHealth = "error";
+    state.backendSummary = null;
+    setConnectionStatus("Backend unavailable");
   }
   renderApiBaseStatus();
 }
@@ -479,6 +523,8 @@ function clearApiBase() {
   localStorage.removeItem(API_BASE_STORAGE_KEY);
   apiBase = DEFAULT_API_BASE;
   els.apiBaseInput.value = apiBase;
+  state.backendHealth = apiBase ? "saved" : "local";
+  state.backendSummary = null;
   setConnectionStatus(apiBase ? "Default backend restored" : "Browser-local demo mode");
   renderApiBaseStatus();
 }
@@ -487,9 +533,16 @@ function renderApiBaseStatus() {
   if (!els.apiBaseStatus) {
     return;
   }
-  els.apiBaseStatus.textContent = apiBase ? "Backend ready" : "Browser-local";
-  els.apiBaseStatus.classList.toggle("saved", Boolean(apiBase));
-  els.apiBaseStatus.classList.toggle("dirty", !apiBase);
+  const labels = {
+    local: "Browser-local",
+    saved: "Backend saved",
+    testing: "Testing",
+    online: "Backend online",
+    error: "Check API",
+  };
+  els.apiBaseStatus.textContent = labels[state.backendHealth] || (apiBase ? "Backend saved" : "Browser-local");
+  els.apiBaseStatus.classList.toggle("saved", Boolean(apiBase) && state.backendHealth !== "error");
+  els.apiBaseStatus.classList.toggle("dirty", !apiBase || state.backendHealth === "error");
 }
 
 async function runWorkflow({ preferApi }) {
@@ -866,7 +919,7 @@ function retrieveContext() {
   renderContext();
 }
 
-function submitQuiz(event) {
+async function submitQuiz(event) {
   event.preventDefault();
   if (!state.quiz || !state.quiz.questions.length) {
     return;
@@ -889,6 +942,45 @@ function submitQuiz(event) {
 
   const correctCount = results.filter((result) => result.correct).length;
   const score = Math.round((correctCount / results.length) * 100);
+  if (apiBase) {
+    try {
+      setConnectionStatus("Saving attempt");
+      const response = await fetch(`${apiBase}/api/studyops/practice-submit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          learner_id: state.learnerId,
+          certification: state.certification,
+          submitted_answers: results.map((result) => ({
+            question_id: result.question_id,
+            selected_answer: result.selected_answer,
+            correct_answer: result.correct_answer,
+            correct: result.correct,
+            topic: result.topic,
+            explanation: result.explanation,
+          })),
+        }),
+      });
+      if (!response.ok) {
+        throw new Error(`Practice submit failed with ${response.status}`);
+      }
+      const payload = await response.json();
+      state.memory = normalizeMemory(payload.memory || state.memory);
+      state.feedback = results;
+      saveSessionMemory();
+      renderMemory();
+      renderFeedback();
+      setConnectionStatus(`Saved to backend: ${Math.round(payload.score || score)}%`);
+      return;
+    } catch (error) {
+      setConnectionStatus("Local attempt fallback");
+    }
+  }
+
+  recordLocalQuizAttempt(results, score);
+}
+
+function recordLocalQuizAttempt(results, score) {
   const attempt = {
     id: Date.now(),
     certification: state.certification,

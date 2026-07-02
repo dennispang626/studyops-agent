@@ -27,6 +27,7 @@ class Phase6FrontendContractTests(unittest.TestCase):
             'id="setupStatus"',
             'id="apiBaseInput"',
             'id="apiBaseStatus"',
+            'id="testApiBaseButton"',
             'id="runWorkflowButton"',
             'id="sourceList"',
             'id="domainList"',
@@ -43,10 +44,13 @@ class Phase6FrontendContractTests(unittest.TestCase):
 
         for marker in [
             "/api/studyops/workflow",
+            "/api/studyops/health",
             "/api/studyops/ingest-url",
             "/api/studyops/ingest-file",
+            "/api/studyops/practice-submit",
             "studyops_api_base",
             "saveApiBase",
+            "testApiBase",
             "clearApiBase",
             "studyops_memory:",
             "retryQueue",

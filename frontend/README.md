@@ -10,8 +10,13 @@ static Vercel project.
 - Browser-local demo mode: runs without credentials or backend access.
 - Backend mode: use Setup -> Backend -> API base URL, or set
   `window.STUDYOPS_API_BASE_URL`, to a FastAPI base URL that exposes
-  `/api/studyops/workflow`, `/api/studyops/ingest-url`, and
-  `/api/studyops/ingest-file`.
+  `/api/studyops/health`, `/api/studyops/workflow`,
+  `/api/studyops/ingest-url`, and `/api/studyops/ingest-file`.
+
+For personal local use with the live Vercel UI, run the backend bridge from the
+project root and set the Setup API base URL to `http://127.0.0.1:8000`. The
+`Test API` button verifies that the browser can reach the local knowledge
+pipeline before URLs or files are ingested.
 
 ## Implemented Panels
 

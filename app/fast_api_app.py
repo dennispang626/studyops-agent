@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
 import logging
+import os
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -23,7 +23,10 @@ from pydantic import BaseModel, Field
 
 from app.app_utils.telemetry import setup_telemetry
 from app.app_utils.typing import Feedback
+from app.config import ensure_storage_dirs
 from app.ingestion.pipeline import ingest_source_url, ingest_study_file
+from app.rag.index import StudyOpsRagIndex
+from app.storage.sqlite_store import SQLiteStudyStore
 from app.workflows.studyops_workflow import (
     create_study_plan,
     generate_practice_quiz,
@@ -33,9 +36,26 @@ from app.workflows.studyops_workflow import (
 
 setup_telemetry()
 logger = logging.getLogger(__name__)
-allow_origins = (
-    os.getenv("ALLOW_ORIGINS", "").split(",") if os.getenv("ALLOW_ORIGINS") else None
-)
+DEFAULT_ALLOW_ORIGINS = [
+    "https://studyops-agent.vercel.app",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "null",
+]
+
+
+def parse_allow_origins() -> list[str]:
+    """Return explicit frontend origins allowed to call the local API bridge."""
+
+    raw_origins = os.getenv("ALLOW_ORIGINS", "")
+    if raw_origins.strip():
+        return [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
+    return DEFAULT_ALLOW_ORIGINS
+
+
+allow_origins = parse_allow_origins()
 
 # Artifact bucket for ADK (created by Terraform, passed via env var)
 logs_bucket_name = os.environ.get("LOGS_BUCKET_NAME")
@@ -45,6 +65,11 @@ AGENT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 session_service_uri = None
 
 artifact_service_uri = f"gs://{logs_bucket_name}" if logs_bucket_name else None
+otel_to_cloud = os.getenv("STUDYOPS_OTEL_TO_CLOUD", "false").lower() in {
+    "1",
+    "true",
+    "yes",
+}
 
 app: FastAPI = get_fast_api_app(
     agents_dir=AGENT_DIR,
@@ -52,7 +77,7 @@ app: FastAPI = get_fast_api_app(
     artifact_service_uri=artifact_service_uri,
     allow_origins=allow_origins,
     session_service_uri=session_service_uri,
-    otel_to_cloud=True,
+    otel_to_cloud=otel_to_cloud,
 )
 app.title = "studyops-agent"
 app.description = "API for interacting with the Agent studyops-agent"
@@ -114,6 +139,50 @@ class StudyOpsSubmitRequest(BaseModel):
     learner_id: str = Field(default="demo-learner")
     certification: str = Field(default="AIF-C01")
     submitted_answers: list[dict[str, Any]] = Field(default_factory=list)
+
+
+@app.get("/api/studyops/health")
+def studyops_health_endpoint() -> dict[str, Any]:
+    """Return local bridge readiness without exposing secret values."""
+
+    paths = ensure_storage_dirs()
+    SQLiteStudyStore()
+    rag_index = StudyOpsRagIndex()
+    markdown_notes = [
+        path
+        for path in paths.obsidian_vault.rglob("*.md")
+        if path.name.lower() != "readme.md"
+    ]
+    source_notes = list((paths.obsidian_vault / "sources").glob("*.md"))
+    certificates_dir = paths.obsidian_vault / "certificates"
+    certificates = (
+        [path.name for path in certificates_dir.iterdir() if path.is_dir()]
+        if certificates_dir.exists()
+        else []
+    )
+
+    return {
+        "status": "ok",
+        "service": "studyops-local-bridge",
+        "gemini_api_key_configured": bool(os.getenv("GOOGLE_API_KEY")),
+        "storage": {
+            "obsidian_vault_ready": paths.obsidian_vault.exists(),
+            "vault_notes": len(markdown_notes),
+            "source_notes": len(source_notes),
+            "certificates": sorted(certificates),
+            "rag_index_ready": rag_index.fallback_path.exists(),
+            "rag_index_backend": "json-fallback"
+            if rag_index.fallback_path.exists()
+            else "pending",
+            "sqlite_ready": paths.sqlite_path.exists(),
+        },
+        "routes": [
+            "/api/studyops/workflow",
+            "/api/studyops/ingest-url",
+            "/api/studyops/ingest-file",
+            "/api/studyops/practice-submit",
+        ],
+    }
 
 
 @app.post("/api/studyops/workflow")

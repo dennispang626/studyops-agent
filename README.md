@@ -132,6 +132,38 @@ The UI runs in browser-local demo mode by default. To connect it to a deployed
 backend later, set `window.STUDYOPS_API_BASE_URL` or
 `localStorage.studyops_api_base` to the FastAPI base URL.
 
+## Personal Backend Bridge
+
+For local personal use, keep the Vercel UI public but run the FastAPI backend
+on your laptop. The browser calls the local backend, and the backend writes to:
+
+- `data/obsidian_vault/` for OKF-style Markdown notes
+- `data/chroma/` for the Chroma-compatible RAG index
+- `data/sqlite/studyops.db` for learner attempts, weak topics, and retry queue
+
+Start the local bridge:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\start-local-backend.ps1
+```
+
+Then use the live frontend Setup page:
+
+1. Set API base URL to `http://127.0.0.1:8000`.
+2. Click `Save API`.
+3. Click `Test API`.
+4. Add URLs or files from Setup to write them into the local knowledge pipeline.
+
+The health endpoint is available at:
+
+```text
+http://127.0.0.1:8000/api/studyops/health
+```
+
+Secrets must stay in ignored local env files or cloud secret managers, never in
+Git. The health endpoint reports only whether `GOOGLE_API_KEY` is configured;
+it never returns the key value.
+
 ## Environment
 
 The project supports either Google AI Studio API-key mode for local prototyping
