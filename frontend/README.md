@@ -8,8 +8,10 @@ static Vercel project.
 ## Runtime Modes
 
 - Browser-local demo mode: runs without credentials or backend access.
-- Backend mode: set `window.STUDYOPS_API_BASE_URL` or `localStorage.studyops_api_base`
-  to a FastAPI base URL that exposes `/api/studyops/workflow`.
+- Backend mode: use Setup -> Backend -> API base URL, or set
+  `window.STUDYOPS_API_BASE_URL`, to a FastAPI base URL that exposes
+  `/api/studyops/workflow`, `/api/studyops/ingest-url`, and
+  `/api/studyops/ingest-file`.
 
 ## Implemented Panels
 

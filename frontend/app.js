@@ -242,13 +242,10 @@ const QUESTION_BANK = {
   ],
 };
 
-const API_BASE = (
-  window.STUDYOPS_API_BASE_URL ||
-  localStorage.getItem("studyops_api_base") ||
-  ""
-).replace(/\/$/, "");
-
 const SESSION_SETTINGS_KEY = "studyops_session_settings";
+const API_BASE_STORAGE_KEY = "studyops_api_base";
+const DEFAULT_API_BASE = normalizeApiBase(window.STUDYOPS_API_BASE_URL || "");
+let apiBase = normalizeApiBase(localStorage.getItem(API_BASE_STORAGE_KEY) || DEFAULT_API_BASE);
 
 const state = {
   activeDomainIndex: 0,
@@ -290,6 +287,10 @@ function bindElements() {
     "certificationSelect",
     "saveSetupButton",
     "setupStatus",
+    "apiBaseInput",
+    "apiBaseStatus",
+    "saveApiBaseButton",
+    "clearApiBaseButton",
     "learnerIdInput",
     "goalInput",
     "hoursInput",
@@ -358,6 +359,8 @@ function bindEvents() {
   els.saveSetupButton.addEventListener("click", () => {
     saveSetup({ preferApi: false });
   });
+  els.saveApiBaseButton.addEventListener("click", saveApiBase);
+  els.clearApiBaseButton.addEventListener("click", clearApiBase);
   els.runWorkflowButton.addEventListener("click", () => {
     saveSetup({ preferApi: true });
   });
@@ -388,6 +391,7 @@ function hydrateInputs() {
   state.questionCount = Number(els.questionCountInput.value);
   els.hoursOutput.textContent = String(state.hoursPerWeek);
   els.questionCountOutput.textContent = String(state.questionCount);
+  els.apiBaseInput.value = apiBase;
 }
 
 function loadSetupSettings() {
@@ -455,16 +459,47 @@ function renderSetupStatus() {
   els.setupStatus.textContent = state.setupDirty ? "Unsaved changes" : "Saved";
   els.setupStatus.classList.toggle("dirty", state.setupDirty);
   els.setupStatus.classList.toggle("saved", !state.setupDirty);
+  renderApiBaseStatus();
+}
+
+function saveApiBase() {
+  apiBase = normalizeApiBase(els.apiBaseInput.value);
+  els.apiBaseInput.value = apiBase;
+  if (apiBase) {
+    localStorage.setItem(API_BASE_STORAGE_KEY, apiBase);
+    setConnectionStatus("Backend URL saved");
+  } else {
+    localStorage.removeItem(API_BASE_STORAGE_KEY);
+    setConnectionStatus("Browser-local demo mode");
+  }
+  renderApiBaseStatus();
+}
+
+function clearApiBase() {
+  localStorage.removeItem(API_BASE_STORAGE_KEY);
+  apiBase = DEFAULT_API_BASE;
+  els.apiBaseInput.value = apiBase;
+  setConnectionStatus(apiBase ? "Default backend restored" : "Browser-local demo mode");
+  renderApiBaseStatus();
+}
+
+function renderApiBaseStatus() {
+  if (!els.apiBaseStatus) {
+    return;
+  }
+  els.apiBaseStatus.textContent = apiBase ? "Backend ready" : "Browser-local";
+  els.apiBaseStatus.classList.toggle("saved", Boolean(apiBase));
+  els.apiBaseStatus.classList.toggle("dirty", !apiBase);
 }
 
 async function runWorkflow({ preferApi }) {
   hydrateInputs();
   loadSessionMemory();
-  setConnectionStatus(preferApi && API_BASE ? "Connecting to backend" : "Local demo mode");
+  setConnectionStatus(preferApi && apiBase ? "Connecting to backend" : "Local demo mode");
 
-  if (preferApi && API_BASE) {
+  if (preferApi && apiBase) {
     try {
-      const response = await fetch(`${API_BASE}/api/studyops/workflow`, {
+      const response = await fetch(`${apiBase}/api/studyops/workflow`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -518,7 +553,7 @@ function applyLocalWorkflow() {
   state.quiz = buildPracticeQuiz(cert, state.questionCount);
   state.trace = buildTrace(cert);
   state.feedback = [];
-  setConnectionStatus(API_BASE ? "Local fallback" : "Local demo mode");
+  setConnectionStatus(apiBase ? "Local fallback" : "Local demo mode");
 }
 
 function currentCertification() {
@@ -685,10 +720,10 @@ async function classifyEnteredSource() {
     return;
   }
 
-  if (API_BASE) {
+  if (apiBase) {
     try {
       setConnectionStatus("Ingesting URL");
-      const response = await fetch(`${API_BASE}/api/studyops/ingest-url`, {
+      const response = await fetch(`${apiBase}/api/studyops/ingest-url`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -741,7 +776,7 @@ async function addSelectedFilesAsNotes() {
     return;
   }
 
-  if (API_BASE) {
+  if (apiBase) {
     const backendNotes = [];
     for (const file of files) {
       const form = new FormData();
@@ -751,7 +786,7 @@ async function addSelectedFilesAsNotes() {
       form.append("domain", getActiveWeek().focus);
       try {
         setConnectionStatus(`Ingesting ${file.name}`);
-        const response = await fetch(`${API_BASE}/api/studyops/ingest-file`, {
+        const response = await fetch(`${apiBase}/api/studyops/ingest-file`, {
           method: "POST",
           body: form,
         });
@@ -1354,6 +1389,10 @@ function tokenize(text) {
 
 function clamp(value, minimum, maximum) {
   return Math.min(Math.max(Number(value), minimum), maximum);
+}
+
+function normalizeApiBase(value) {
+  return String(value || "").trim().replace(/\/$/, "");
 }
 
 function optionExists(select, value) {

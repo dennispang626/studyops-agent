@@ -143,6 +143,28 @@
                 <output id="questionCountOutput">5</output>
               </div>
               <input id="questionCountInput" type="range" min="1" max="10" value="5" />
+
+              <div class="section-divider"></div>
+
+              <div class="panel-header compact nested-header">
+                <div>
+                  <p class="eyebrow">Backend</p>
+                  <h3>Knowledge pipeline</h3>
+                </div>
+                <span class="metric-badge" id="apiBaseStatus">Browser-local</span>
+              </div>
+
+              <label for="apiBaseInput">API base URL</label>
+              <input id="apiBaseInput" type="url" placeholder="http://localhost:8000" autocomplete="off" />
+
+              <div class="setup-actions api-actions">
+                <button class="secondary-button" id="saveApiBaseButton" type="button" title="Save backend API URL">
+                  Save API
+                </button>
+                <button class="ghost-button" id="clearApiBaseButton" type="button" title="Clear saved backend API URL">
+                  Clear
+                </button>
+              </div>
             </section>
 
             <section class="panel source-panel">
